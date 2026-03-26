@@ -27,8 +27,9 @@ expressApp.get('/', (req, res) => {
 
 let mainWindow;
 let server;
+let serverPort;
 
-function createWindow(port) {
+function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -41,9 +42,8 @@ function createWindow(port) {
     autoHideMenuBar: true,
   });
 
-  mainWindow.loadURL(`http://localhost:${port}`);
+  mainWindow.loadURL(`http://localhost:${serverPort}`);
 
-  // Open external links in browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http')) shell.openExternal(url);
     return { action: 'allow' };
@@ -52,11 +52,26 @@ function createWindow(port) {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-// Start Express on a free port, then create Electron window
+// Wait for both Electron app ready AND Express server ready
+let appReady = false;
+let serverReady = false;
+
+function tryCreateWindow() {
+  if (appReady && serverReady && !mainWindow) {
+    createWindow();
+  }
+}
+
 server = expressApp.listen(0, () => {
-  const port = server.address().port;
-  console.log(`Server running on port ${port}`);
-  createWindow(port);
+  serverPort = server.address().port;
+  console.log(`Server running on port ${serverPort}`);
+  serverReady = true;
+  tryCreateWindow();
+});
+
+app.whenReady().then(() => {
+  appReady = true;
+  tryCreateWindow();
 });
 
 app.on('window-all-closed', () => {
@@ -65,9 +80,5 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  if (mainWindow === null) createWindow(server.address().port);
-});
-
-app.whenReady().then(() => {
-  // Window already created in server.listen callback
+  if (mainWindow === null) createWindow();
 });
