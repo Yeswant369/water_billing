@@ -6,8 +6,6 @@ const express = require('express');
 const expressApp = express();
 const { getDb } = require('./database');
 
-const PORT = 4000;
-
 expressApp.use(express.json());
 expressApp.use(express.urlencoded({ extended: true }));
 expressApp.use(express.static(path.join(__dirname, 'public')));
@@ -28,13 +26,14 @@ expressApp.get('/', (req, res) => {
 });
 
 let mainWindow;
+let server;
 
-function createWindow() {
+function createWindow(port) {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     title: 'Water Billing System - KNGIAS',
-    icon: path.join(__dirname, 'public', 'icon.png'),
+    icon: path.join(__dirname, 'build', 'icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -42,7 +41,7 @@ function createWindow() {
     autoHideMenuBar: true,
   });
 
-  mainWindow.loadURL(`http://localhost:${PORT}`);
+  mainWindow.loadURL(`http://localhost:${port}`);
 
   // Open external links in browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -53,10 +52,11 @@ function createWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-// Start Express, then create Electron window
-const server = expressApp.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  createWindow();
+// Start Express on a free port, then create Electron window
+server = expressApp.listen(0, () => {
+  const port = server.address().port;
+  console.log(`Server running on port ${port}`);
+  createWindow(port);
 });
 
 app.on('window-all-closed', () => {
@@ -65,7 +65,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  if (mainWindow === null) createWindow();
+  if (mainWindow === null) createWindow(server.address().port);
 });
 
 app.whenReady().then(() => {
