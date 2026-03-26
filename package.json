@@ -30,7 +30,9 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "public/icon.png"
+      "icon": "public/icon.png",
+      "signAndEditExecutable":false,
+      "sign":false
     },
     "nsis": {
       "oneClick": false,
@@ -42,7 +44,9 @@
     },
     "mac": {
       "target": "dmg",
-      "icon": "public/icon.png"
+      "icon": "public/icon.png",
+      "signAndEditExecutable":false,
+      "sign":false
     },
     "linux": {
       "target": "AppImage",
