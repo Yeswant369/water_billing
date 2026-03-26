@@ -28,6 +28,7 @@
       "!*.db-wal"
     ],
     "asar": false,
+    "icon": "build/icon.png",
     "win": {
       "target": [
         {
