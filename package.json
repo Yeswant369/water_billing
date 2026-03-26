@@ -6,6 +6,7 @@
   "scripts": {
     "start": "electron .",
     "server": "node server.js",
+    "postinstall": "electron-builder install-app-deps",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
@@ -21,36 +22,32 @@
       "**/*",
       "!dist/**",
       "!.github/**",
-      "!*.md"
+      "!*.md",
+      "!water_billing.db",
+      "!*.db-journal",
+      "!*.db-wal"
     ],
+    "asar": false,
     "win": {
       "target": [
         {
           "target": "nsis",
           "arch": ["x64"]
         }
-      ],
-      "icon": "public/icon.png",
-      "signAndEditExecutable":false,
-      "sign":false
+      ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerHeaderIcon": "public/icon.png",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Water Billing System"
     },
     "mac": {
-      "target": "dmg",
-      "icon": "public/icon.png",
-      "signAndEditExecutable":false,
-      "sign":false
+      "target": "dmg"
     },
     "linux": {
-      "target": "AppImage",
-      "icon": "public/icon.png"
+      "target": "AppImage"
     }
   },
   "dependencies": {
@@ -58,7 +55,8 @@
     "express": "^4.21.0"
   },
   "devDependencies": {
-    "electron": "^33.0.0",
-    "electron-builder": "^25.1.0"
+    "electron": "^32.2.0",
+    "electron-builder": "^24.13.0",
+    "electron-rebuild": "^3.2.9"
   }
 }
