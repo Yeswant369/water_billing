@@ -556,5 +556,115 @@ function editTabEntry(tabId,id,enc){const d=JSON.parse(decodeURIComponent(enc));
 async function saveTabEntry(tabId,id){try{const d=JSON.parse(document.getElementById('customEntryData').value);if(id)await api(`/custom/tabs/${tabId}/data/${id}`,'PUT',{data:d});else await api(`/custom/tabs/${tabId}/data`,'POST',{data:d});toast(id?'Updated':'Created');closeModal();renderCustomTab('custom-'+tabId,document.getElementById('pageContent'));}catch(e){toast('Error: '+e.message,'error');}}
 async function deleteTabEntry(tabId,id){if(!confirm('Delete?'))return;await api(`/custom/tabs/${tabId}/data/${id}`,'DELETE');toast('Deleted');renderCustomTab('custom-'+tabId,document.getElementById('pageContent'));}
 
+// ===== LICENSE CHECK =====
+// On app load, check if a valid license exists.
+// If not, show the activation screen and block access to the app.
+// If yes, boot the app normally.
+//
+// Flow:
+//   1. GET /api/license/status
+//   2. If licensed: true  → renderPage('dashboard') — normal boot
+//   3. If licensed: false → show activation screen with token input
+//   4. User pastes token → POST /api/license/activate
+//   5. If valid → reload app → step 1 now passes → normal boot
+//   6. If invalid → show error, let them retry
+
+async function showLicenseScreen(errorMsg) {
+  // Hide sidebar and topbar — unlicensed users shouldn't see the app
+  document.getElementById('sidebar').style.display = 'none';
+  document.querySelector('.main-content').style.marginLeft = '0';
+
+  const content = document.getElementById('pageContent');
+  document.getElementById('pageTitle').textContent = 'License Activation';
+  document.getElementById('topbarActions').innerHTML = '';
+
+  // Fetch this machine's unique ID to display to the customer
+  // They need to share this with you (admin) so you can generate
+  // a token locked to their machine
+  let machineId = 'Loading...';
+  try {
+    const res = await fetch('/api/license/machine-id');
+    const data = await res.json();
+    machineId = data.machineId;
+  } catch (e) {
+    machineId = 'Error loading';
+  }
+
+  content.innerHTML = `
+    <div style="max-width:500px;margin:80px auto;text-align:center">
+      <div style="margin-bottom:24px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" width="64" height="64">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <h2 style="margin-bottom:8px">License Required</h2>
+      <p style="color:var(--gray-500);margin-bottom:24px">Enter your license token to activate the application.</p>
+      ${errorMsg ? `<div style="background:#fef2f2;color:#dc2626;padding:10px 14px;border-radius:var(--radius);margin-bottom:16px;font-size:14px">${errorMsg}</div>` : ''}
+      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);padding:14px;margin-bottom:20px;text-align:left">
+        <div style="font-size:12px;color:var(--gray-500);margin-bottom:6px">Your Machine ID (share this with your administrator)</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <code style="flex:1;font-size:15px;font-weight:600;letter-spacing:1px;color:var(--primary);user-select:all">${machineId}</code>
+          <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('${machineId}');toast('Machine ID copied!')">Copy</button>
+        </div>
+      </div>
+      <div class="form-group" style="text-align:left">
+        <label>License Token</label>
+        <textarea class="form-control" id="licenseTokenInput" rows="5" placeholder="Paste your license token here..." style="font-family:monospace;font-size:12px"></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:12px" onclick="activateLicense()">Activate License</button>
+    </div>
+  `;
+}
+
+async function activateLicense() {
+  const token = document.getElementById('licenseTokenInput').value.trim();
+  if (!token) {
+    toast('Please enter a license token', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/license/activate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      // Show error on the license screen — let them retry
+      showLicenseScreen(data.error || 'Invalid license token');
+      return;
+    }
+
+    // License valid — reload to boot the full app
+    toast('License activated for ' + data.licensee);
+    setTimeout(() => location.reload(), 1000);
+  } catch (e) {
+    showLicenseScreen('Activation failed: ' + e.message);
+  }
+}
+
+async function checkLicense() {
+  try {
+    const res = await fetch('/api/license/status');
+    const data = await res.json();
+
+    if (data.licensed) {
+      // Valid license — show sidebar and boot normally
+      document.getElementById('sidebar').style.display = '';
+      document.querySelector('.main-content').style.marginLeft = '';
+      renderPage('dashboard');
+    } else {
+      // No license or expired — show activation screen
+      showLicenseScreen(data.error || null);
+    }
+  } catch (e) {
+    // Server error — still show activation screen
+    showLicenseScreen('Could not verify license');
+  }
+}
+
 // ===== INIT =====
-renderPage('dashboard');
+checkLicense();

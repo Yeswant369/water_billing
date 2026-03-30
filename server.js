@@ -12,7 +12,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Initialize database on startup
 getDb();
 
-// API Routes
+// License routes — must come BEFORE the gate so activation is always reachable
+app.use('/api/license', require('./routes/license'));
+
+// License gate middleware — blocks all other /api routes if unlicensed
+// Every request (except /api/license) passes through here first.
+// It loads the saved token, verifies it, and either allows or rejects the request.
+const { loadLicense, verifyLicense } = require('./license');
+app.use('/api', (req, res, next) => {
+  const token = loadLicense();
+  if (!token || !verifyLicense(token).valid) {
+    return res.status(403).json({ error: 'License required' });
+  }
+  next();
+});
+
+// API Routes — only reachable if license is valid
 app.use('/api/consumers', require('./routes/consumers'));
 app.use('/api/readings', require('./routes/readings'));
 app.use('/api/bills', require('./routes/bills'));

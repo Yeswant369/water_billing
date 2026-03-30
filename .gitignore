@@ -3,3 +3,5 @@ node_modules
 .env.local
 out
 dist
+license-private.pem
+license.key

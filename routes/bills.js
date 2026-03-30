@@ -40,9 +40,15 @@ router.post('/generate', (req, res) => {
   const excessRate = parseFloat(getSetting('excess_rate_per_kl')) || 27;
 
   const consumption = (present_reading || 0) - (previous_reading || 0);
-  const sanctionedQty = consumer.sanctioned_qty || 0;
-  const excessQty = sanctionedQty > 0 ? Math.max(0, consumption - sanctionedQty) : 0;
-  const normalQty = consumption - excessQty;
+  const dailySanctioned = consumer.sanctioned_qty || 0;
+  const sanctionedQty = dailySanctioned * 30; // Monthly = daily × 30
+
+  // Minimum billing: if consumption < 60% of sanctioned qty, bill at 60% minimum
+  const minQty = sanctionedQty > 0 ? sanctionedQty * 0.6 : 0;
+  const billableQty = Math.max(consumption, minQty);
+
+  const excessQty = sanctionedQty > 0 ? Math.max(0, billableQty - sanctionedQty) : 0;
+  const normalQty = billableQty - excessQty;
 
   const consumptionCharges = normalQty * rate;
   const excessCharges = excessQty * excessRate;
@@ -111,9 +117,15 @@ router.post('/generate-bulk', (req, res) => {
       if (existingBill) continue;
 
       const consumption = reading.consumption;
-      const sanctionedQty = consumer.sanctioned_qty || 0;
-      const excessQty = sanctionedQty > 0 ? Math.max(0, consumption - sanctionedQty) : 0;
-      const normalQty = consumption - excessQty;
+      const dailySanctioned = consumer.sanctioned_qty || 0;
+      const sanctionedQty = dailySanctioned * 30; // Monthly = daily × 30
+
+      // Minimum billing: if consumption < 60% of sanctioned qty, bill at 60% minimum
+      const minQty = sanctionedQty > 0 ? sanctionedQty * 0.6 : 0;
+      const billableQty = Math.max(consumption, minQty);
+
+      const excessQty = sanctionedQty > 0 ? Math.max(0, billableQty - sanctionedQty) : 0;
+      const normalQty = billableQty - excessQty;
       const consumptionCharges = normalQty * rate;
       const excessCharges = excessQty * excessRate;
 
