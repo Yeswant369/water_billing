@@ -50,8 +50,8 @@ router.post('/generate', (req, res) => {
   const excessQty = sanctionedQty > 0 ? Math.max(0, billableQty - sanctionedQty) : 0;
   const normalQty = billableQty - excessQty;
 
-  const consumptionCharges = normalQty * rate;
-  const excessCharges = excessQty * excessRate;
+  const consumptionCharges = (normalQty * rate) / 1000;
+  const excessCharges = (excessQty * excessRate) / 1000;
   const arr = parseFloat(arrears) || 0;
   const other = parseFloat(other_charges) || 0;
   const total = consumptionCharges + excessCharges + arr + other;
