@@ -1,5 +1,8 @@
 // ===== API Helper =====
 async function api(url, method = 'GET', body = null) {
+  if (typeof window.localApiRequest === 'function') {
+    return window.localApiRequest(url, method, body);
+  }
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch('/api' + url, opts);
@@ -583,8 +586,7 @@ async function showLicenseScreen(errorMsg) {
   // a token locked to their machine
   let machineId = 'Loading...';
   try {
-    const res = await fetch('/api/license/machine-id');
-    const data = await res.json();
+    const data = await api('/license/machine-id');
     machineId = data.machineId;
   } catch (e) {
     machineId = 'Error loading';
@@ -625,21 +627,8 @@ async function activateLicense() {
   }
 
   try {
-    const res = await fetch('/api/license/activate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token })
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      // Show error on the license screen — let them retry
-      showLicenseScreen(data.error || 'Invalid license token');
-      return;
-    }
-
-    // License valid — reload to boot the full app
-    toast('License activated for ' + data.licensee);
+    const data = await api('/license/activate', 'POST', { token });
+    toast('License activated for ' + (data.licensee || 'user'));
     setTimeout(() => location.reload(), 1000);
   } catch (e) {
     showLicenseScreen('Activation failed: ' + e.message);
@@ -648,8 +637,7 @@ async function activateLicense() {
 
 async function checkLicense() {
   try {
-    const res = await fetch('/api/license/status');
-    const data = await res.json();
+    const data = await api('/license/status');
 
     if (data.licensed) {
       // Valid license — show sidebar and boot normally
