@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "server": "node server.js",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "node -e \"if(!process.env.VERCEL){require('child_process').execSync('electron-builder install-app-deps',{stdio:'inherit'})}else{console.log('Skipping electron app deps on Vercel')}\"",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
