@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm install --ignore-scripts",
+  "buildCommand": "echo 'Static PWA build - no compile step'",
+  "outputDirectory": "public",
+  "cleanUrls": true
+}
